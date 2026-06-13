@@ -43,7 +43,7 @@ jobs:
           configPath: ./${{ matrix.config }}
           uploadArtifacts: true
           temporaryPublicStorage: true
-          runs: 1
+          runs: 5
 
       - name: Upload raw reports as workflow artifact
         if: always()
