@@ -1,0 +1,56 @@
+name: lighthouse-landing
+on:
+  workflow_dispatch:
+  schedule:
+    # Weekly Monday 06:00 UTC
+    - cron: '0 6 * * 1'
+  push:
+    branches: [main]
+    paths:
+      - 'src/**'
+      - 'public/**'
+      - 'next.config.*'
+      - 'package.json'
+      - '.lighthouserc*.json'
+      - '.github/workflows/lighthouse.yml'
+
+# Allow only one Lighthouse run at a time per ref
+concurrency:
+  group: lighthouse-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  audit:
+    name: Lighthouse (${{ matrix.preset }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - preset: desktop
+            config: .lighthouserc.json
+          - preset: mobile
+            config: .lighthouserc.mobile.json
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Run Lighthouse CI (${{ matrix.preset }})
+        uses: treosh/lighthouse-ci-action@v12
+        with:
+          urls: |
+            https://operator-pack-landing.vercel.app/
+          configPath: ./${{ matrix.config }}
+          uploadArtifacts: true
+          temporaryPublicStorage: true
+          runs: 1
+
+      - name: Upload raw reports as workflow artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: lighthouse-${{ matrix.preset }}-reports
+          path: |
+            .lighthouseci/
+          if-no-files-found: warn
+          retention-days: 30
